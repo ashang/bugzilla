@@ -554,7 +554,7 @@ sub identity {
 
     if (!defined $self->{identity}) {
         $self->{identity} =
-          $self->name ? $self->name . " (" . $self->login. ")" : $self->login;
+          $self->login ? $self->login . " (" . $self->name. ")" : $self->name;
     }
 
     return $self->{identity};
@@ -2301,7 +2301,7 @@ sub get_userlist {
     while (my($login, $name, $visible) = $sth->fetchrow_array) {
         push @userlist, {
             login => $login,
-            identity => $name ? "$name ($login)" : $login,
+            identity => $login ? "$login ($name)" : $name,
             visible => $visible,
         };
     }

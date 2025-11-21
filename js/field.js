@@ -758,7 +758,7 @@ $(function() {
         },
         formatResult: function(suggestion, currentValue) {
             return (suggestion.data.name === '' ?
-                suggestion.data.login : suggestion.data.name + ' (' + suggestion.data.login + ')')
+                suggestion.data.login : suggestion.data.login + ' (' + suggestion.data.name + ')')
                 .replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;')
