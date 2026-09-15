@@ -23,3 +23,5 @@
 
 /skins/contrib/Dusk/admin.css
 /skins/contrib/Dusk/bug.css
+
+.DS_Store*

@@ -1,0 +1,21 @@
+[%# This Source Code Form is subject to the terms of the Mozilla Public
+  # License, v. 2.0. If a copy of the MPL was not distributed with this
+  # file, You can obtain one at http://mozilla.org/MPL/2.0/.
+  #
+  # UserField extension.
+  #
+  #%]
+
+[% IF user_field_hash.${field.name} AND editable %]
+  [% IF feature_enabled('jsonrpc') && Param('ajax_user_autocompletion') %]
+    <div id="[% field.name FILTER html %]_autocomplete_container"></div>
+    <script type="text/javascript">
+      if (typeof(YAHOO.bugzilla.userAutocomplete) !== 'undefined'
+          && YAHOO.bugzilla.userAutocomplete != null) {
+        YAHOO.bugzilla.userAutocomplete.init(
+          '[% field.name FILTER js %]',
+          '[% field.name FILTER js %]_autocomplete_container');
+      }
+    </script>
+  [% END %]
+[% END %]
