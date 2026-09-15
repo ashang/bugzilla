@@ -3,23 +3,28 @@
 #
 # Turns one or more existing "Free Text" custom fields (type cf_xxx) into a
 # user picker: the value must be the login name of an existing Bugzilla
-# account, and the field gets the same autocomplete widget used for
-# Assignee / CC / QA Contact.
+# account, and the field is shown as a real <select> dropdown listing every
+# Bugzilla user - the same list and visibility rules used for Assignee /
+# QA Contact when Administration -> Parameters -> User Matching ->
+# "usemenuforusers" is switched on.
 #
 # HOW IT WORKS
 #   1. object_validators  - whenever a bug is created or edited (through the
 #      web UI, email_in.pl, or the REST/XML-RPC API), the value entered for
 #      each field listed in USER_FIELDS is resolved against Bugzilla's user
 #      list and normalised to a canonical login name. An invalid login
-#      throws Bugzilla's normal "no such user" error.
+#      throws Bugzilla's normal "no such user" error. This still applies
+#      even though the web UI itself only ever submits values that came
+#      from the dropdown - it's what keeps the API/email_in.pl paths safe.
 #   2. template_before_process - tells bug/field.html.tmpl which fields are
 #      "user fields", by injecting a lookup hash into the template variables.
 #   3. template/en/default/hook/bug/field-end_field_column.html.tmpl
 #      - the actual hook template. For fields listed in USER_FIELDS, it
-#      prints the small piece of HTML/JS needed to attach Bugzilla's
-#      built-in YUI user-autocomplete widget (the same one used by the
-#      Assignee/CC/QA Contact fields) to the plain text input that
-#      bug/field.html.tmpl already rendered for the FREETEXT field type.
+#      prints a <select> populated from user.get_userlist (Bugzilla's own
+#      "every visible user" list - the exact same one Assignee/QA Contact
+#      use), and disables the plain <input> that bug/field.html.tmpl
+#      already rendered above it for the FREETEXT field type, so only the
+#      <select>'s value gets submitted.
 #
 # INSTALLATION
 #   1. Copy this whole "UserField" directory into Bugzilla's extensions/
@@ -32,22 +37,27 @@
 #      up the new extension and recompiles its templates.
 #   5. Restart Apache/mod_perl if you run Bugzilla under mod_perl (plain
 #      CGI installs don't need a restart).
-#   6. Make sure Administration -> Parameters -> "User Matching" ->
-#      ajax_user_autocompletion is switched On (it is by default on most
-#      installs) - that parameter is what turns on the autocomplete widget
-#      at all, even for the built-in Assignee/CC fields.
 #
 # LIMITATIONS
 #   - One login per field (like Assignee/QA Contact), not a multi-user list
-#     like CC. If you need a multi-user field, the "field_type == FIELD_TYPE_MULTI_SELECT" 
-#     branch of userselect.html.tmpl combined with the "multiple" flag on
-#     the autocomplete widget is the place to start extending this.
-#   - No group restriction (any Bugzilla account can be entered). If you
-#     need to restrict to a group, resolve the login in _check_user_field
-#     below and additionally check $user->in_group('your_group') there.
+#     like CC. A true multi-select would need <select multiple> plus
+#     changing _check_user_field below to validate a list of logins instead
+#     of one.
+#   - The dropdown lists every enabled account (same as Assignee/QA
+#     Contact) - there's no group restriction on who can be picked. If you
+#     need to restrict it to a group, filter the FOREACH loop in the hook
+#     template to accounts where $u has your group (you'll need to pass a
+#     pre-filtered list in via template_before_process instead of calling
+#     user.get_userlist directly in the template), and also check
+#     $user->in_group('your_group') in _check_user_field below so the
+#     restriction holds for the API/email_in.pl paths too.
 #   - The value is stored as plain text (the field is a real FREETEXT
 #     field), so advanced search operators specific to user fields (like
 #     "is one of my bugs") don't apply - only text search operators do.
+#   - On installs with a LOT of users, a plain <select> with everyone in it
+#     gets unwieldy. If that's your situation, an autocomplete text box is
+#     usually nicer than a giant dropdown - ask and I can put that version
+#     together instead.
 
 package Bugzilla::Extension::UserField;
 
