@@ -2,20 +2,47 @@
   # License, v. 2.0. If a copy of the MPL was not distributed with this
   # file, You can obtain one at http://mozilla.org/MPL/2.0/.
   #
-  # UserField extension.
+  # UserField extension. See Extension.pm for the full explanation.
   #
+  # This is included from bug/field.html.tmpl via its end_field_column
+  # hook call, once per field, after the field's normal input/text has
+  # already been printed by the SWITCH block above it. It shares that
+  # template's local variables (field, value, bug, editable, user...),
+  # plus user_field_hash, which our Extension.pm injects.
   #%]
 
 [% IF user_field_hash.${field.name} AND editable %]
-  [% IF feature_enabled('jsonrpc') && Param('ajax_user_autocompletion') %]
-    <div id="[% field.name FILTER html %]_autocomplete_container"></div>
-    <script type="text/javascript">
-      if (typeof(YAHOO.bugzilla.userAutocomplete) !== 'undefined'
-          && YAHOO.bugzilla.userAutocomplete != null) {
-        YAHOO.bugzilla.userAutocomplete.init(
-          '[% field.name FILTER js %]',
-          '[% field.name FILTER js %]_autocomplete_container');
-      }
-    </script>
-  [% END %]
+  [%# Bugzilla core has no true "User" custom field type (see
+    # Extension.pm), so field.html.tmpl already printed a plain
+    # <input> above for our Free Text field. Here we print a real
+    # <select> listing every visible Bugzilla user - the same list
+    # and the same visibility rules Assignee/QA Contact use when
+    # Administration -> Parameters -> User Matching ->
+    # "usemenuforusers" is on - and disable the original <input> so
+    # only the <select>'s value gets submitted under this field's
+    # name. #%]
+  <select name="[% field.name FILTER html %]"
+          id="[% field.name FILTER html %]_select">
+    <option value=""></option>
+    [% SET seen_selected = 0 %]
+    [% FOREACH u = user.get_userlist %]
+      [% NEXT UNLESS u.visible OR u.login == value %]
+      [% SET is_selected = (u.login == value) %]
+      [% SET seen_selected = 1 IF is_selected %]
+      <option value="[% u.login FILTER html %]"[% ' selected="selected"' IF is_selected %]>[% u.identity FILTER html %]</option>
+    [% END %]
+    [% IF value AND NOT seen_selected %]
+      [%# The stored value is a real login that isn't in the
+        # visible/enabled list right now (disabled account, hidden by
+        # a visibility group, etc.) - keep it selectable so simply
+        # opening and saving the bug doesn't silently drop it. #%]
+      <option value="[% value FILTER html %]" selected="selected">[% value FILTER html %]</option>
+    [% END %]
+  </select>
+  <script type="text/javascript">
+    (function () {
+      var orig = document.getElementById('[% field.name FILTER js %]');
+      if (orig) { orig.disabled = true; orig.style.display = 'none'; }
+    })();
+  </script>
 [% END %]
